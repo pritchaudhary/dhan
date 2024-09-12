@@ -1,0 +1,203 @@
+------------------------------------------------------------------
+
+from dhanhq import dhanhq
+import talib
+import numpy as np
+import pandas as pd
+import time
+import datetime
+import os
+
+------------------------------------------------------------------
+
+dhan = dhanhq("1102249582","eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzI1NTUzNzY1LCJ0b2tlbkNvbnN1bWVyVHlwZSI6IlNFTEYiLCJ3ZWJob29rVXJsIjoiIiwiZGhhbkNsaWVudElkIjoiMTEwMjI0OTU4MiJ9.HY085YfHlWEJJ3B69NLDOOoj4OnyRmXsSpMyHU3cH7BtpVMRAQisl-qjMoH2LzzKs0XQ0qyPVmCvhy80VCrirA")
+
+masterlist = pd.read_csv('https://images.dhan.co/api-data/api-scrip-master.csv', nrows=1)
+masterlist = pd.read_csv('https://images.dhan.co/api-data/api-scrip-master.csv', usecols=masterlist.columns, low_memory=False)
+
+BANK_NIFTY_PREMIMUM = 51400
+
+-------------------------------------------------------------------
+
+filtered_ce_masterlist = masterlist[
+    (masterlist.SEM_INSTRUMENT_NAME == 'OPTIDX') &
+    (masterlist.SEM_TRADING_SYMBOL.str.startswith('BANKNIFTY')) &
+    (masterlist.SEM_EXPIRY_DATE == '2024-09-11 14:30:00') &
+    (masterlist.SEM_STRIKE_PRICE == BANK_NIFTY_PREMIMUM) &
+    (masterlist.SEM_OPTION_TYPE == 'CE') 
+]
+filtered_ce_masterlist
+
+---------------------------------------------------------------------
+
+filtered_pe_masterlist = masterlist[
+    (masterlist.SEM_INSTRUMENT_NAME == 'OPTIDX') &
+    (masterlist.SEM_TRADING_SYMBOL.str.startswith('BANKNIFTY')) &
+    (masterlist.SEM_EXPIRY_DATE == '2024-09-11 14:30:00') &
+    (masterlist.SEM_STRIKE_PRICE == BANK_NIFTY_PREMIMUM) &
+    (masterlist.SEM_OPTION_TYPE == 'PE')
+]
+
+filtered_pe_masterlist
+---------------------------------------------------------------------
+
+
+SECURITY_ID = 49023
+
+IS_ACTIVE = False
+IS_OPEN_POSITION = False
+quantity = 0
+buy_price = 0
+stop_loss = 0
+
+while IS_ACTIVE is False:
+        current_second = datetime.datetime.now().second
+        time.sleep(1)
+        print("waiting to activate", current_second)
+        if current_second == 1:
+            IS_ACTIVE = True
+
+while IS_ACTIVE is True and IS_OPEN_POSITION is False:
+      current_second = datetime.datetime.now().second
+      if current_second == 0:
+            break;
+      print('Active',current_second)
+      time.sleep(0.15)
+      intraday = dhan.intraday_daily_minute_charts(SECURITY_ID, dhan.NSE_FNO, "OPTIDX")
+      print("intraday", intraday)
+      intraday_df = pd.DataFrame(intraday['data']).tail(2)
+      temp_list = []
+
+      for i in intraday_df['start_Time']:
+          temp = dhan.convert_to_date_time(i)
+          temp_list.append(temp)
+
+      intraday_df['Date'] = temp_list
+
+      previous_closed_candle = intraday_df.iloc[-2]
+      current_running_candle = intraday_df.iloc[-1]
+      
+
+     
+      if current_running_candle['close'] > previous_closed_candle['high']:
+            print('Buy')
+            length_of_previous_candle = round(previous_closed_candle['high'] - previous_closed_candle['low'])
+            risk                      = 500
+            quantity                  = 90 # round(round(risk / length_of_previous_candle) / 15) * 15
+            print('quantity',quantity)
+
+            buy_price = int(current_running_candle['close'])
+            stop_loss = int(previous_closed_candle['low'])
+
+            new_data = {
+                  'id': '2',
+                  'Call Or Put': 'PE',
+                  "Quantity":quantity,
+                  'Buy Price': buy_price,
+                  'Sell Price': '',
+                  "Transaction": "BUY"
+                  }
+            
+            # File path
+            csv_file = 'log.csv'
+
+            # Create a DataFrame from the new data
+            df = pd.DataFrame([new_data])
+            df.to_csv(csv_file, index=False)
+
+            dhan.place_order(
+            security_id=SECURITY_ID,
+            exchange_segment=dhan.NSE_FNO,
+            transaction_type=dhan.BUY,
+            quantity=quantity,
+            order_type=dhan.MARKET,
+            product_type=dhan.INTRA,
+            price=0)  
+
+
+            IS_OPEN_POSITION = True
+            break;
+
+
+-------------------------------------------------------------------------------
+
+
+
+
+COST_TO_COST_SL = False
+
+while IS_OPEN_POSITION is True and quantity > 0:
+      time.sleep(0.10)
+      intraday = dhan.intraday_daily_minute_charts(SECURITY_ID, dhan.NSE_FNO, "OPTIDX")
+      print("waiting for sell")
+      intraday_df = pd.DataFrame(intraday['data']).tail(2)
+      temp_list = []
+
+      for i in intraday_df['start_Time']:
+          temp = dhan.convert_to_date_time(i)
+          temp_list.append(temp)
+
+      intraday_df['Date'] = temp_list
+
+      previous_closed_candle = intraday_df.iloc[-2]
+      current_running_candle = intraday_df.iloc[-1]
+
+      if current_running_candle['close'] < previous_closed_candle['low'] and COST_TO_COST_SL is False:
+            print("SELL")
+            IS_OPEN_POSITION = False
+          
+           # Place an order for NSE Futures & Options
+            dhan.place_order(security_id=SECURITY_ID,
+            exchange_segment=dhan.NSE_FNO,
+            transaction_type=dhan.SELL,
+            quantity=quantity,
+            order_type=dhan.MARKET,
+            product_type=dhan.INTRA,
+            price=0)  
+
+            new_data = {
+                  'id': '2',
+                  'Call Or Put': 'PE',
+                  "Quantity":quantity,
+                  'Buy Price': buy_price,
+                  'Sell Price': current_running_candle['close'],
+                  "Transaction": "SELL"
+                  }
+            
+            # File path
+            csv_file = 'log.csv'
+
+            # Create a DataFrame from the new data
+            df = pd.DataFrame([new_data])
+            df.to_csv(csv_file, index=False)
+
+      if current_running_candle['close'] < buy_price and COST_TO_COST_SL is True:
+            print("SELL")
+            IS_OPEN_POSITION = False
+          
+           # Place an order for NSE Futures & Options
+            dhan.place_order(security_id=SECURITY_ID,
+            exchange_segment=dhan.NSE_FNO,
+            transaction_type=dhan.SELL,
+            quantity=quantity,
+            order_type=dhan.MARKET,
+            product_type=dhan.INTRA,
+            price=0)  
+
+            new_data = {
+                  'id': '2',
+                  'Call Or Put': 'PE',
+                  "Quantity":quantity,
+                  'Buy Price': buy_price,
+                  'Sell Price': current_running_candle['close'],
+                  "Transaction": "SELL"
+                  }
+            
+            # File path
+            csv_file = 'log.csv'
+
+            # Create a DataFrame from the new data
+            df = pd.DataFrame([new_data])
+            df.to_csv(csv_file, index=False)
+
+
