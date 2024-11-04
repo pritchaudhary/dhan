@@ -12,7 +12,7 @@ import time
 
 # Add your Dhan Client ID and Access Token
 client_id = "1102249582"
-access_token = "xxxxxxxxxxxxxxxxxxxxxxxxxx"
+access_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzI3ODQxMjc3LCJ0b2tlbkNvbnN1bWVyVHlwZSI6IlNFTEYiLCJ3ZWJob29rVXJsIjoiIiwiZGhhbkNsaWVudElkIjoiMTEwMjI0OTU4MiJ9.PJrWai0MtpqjYT7i6h1HdT3qhCIyL4HoDkhE5A_4T1cBno2lDN0YABgDXJq7IrYC5HFTfpXcLBZ4wg6iX2F4_w"
 
 dhan = dhanhq(client_id,access_token)
 

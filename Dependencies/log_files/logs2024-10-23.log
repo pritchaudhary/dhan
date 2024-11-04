@@ -1,0 +1,35 @@
+INFO:2024-10-23 15:58:57,209:MainThread:Dhan.py  started system
+INFO:2024-10-23 15:58:57,209:MainThread:STARTED THE PROGRAM
+ERROR:2024-10-23 15:59:09,069:MainThread:Error at Gettting balance as string indices must be integers
+Traceback (most recent call last):
+  File "/home/pritam/projects/sampleprojects/python_projects/dhan/Dhan_Tradehull.py", line 199, in get_balance
+    balance = float(response['data']['availabelBalance'])
+TypeError: string indices must be integers
+ERROR:2024-10-23 15:59:44,585:MainThread:Exception in getting LTP as 'Series' object has no attribute 'range'
+Traceback (most recent call last):
+  File "/home/pritam/projects/sampleprojects/python_projects/dhan/Dhan_Tradehull.py", line 323, in get_ltp
+    df = self.sheet.range('A1').expand().options(pd.DataFrame, header=1, index=False).value
+  File "/home/pritam/projects/sampleprojects/python_projects/dhan/.venv/lib/python3.8/site-packages/pandas/core/generic.py", line 5989, in __getattr__
+    return object.__getattribute__(self, name)
+AttributeError: 'Series' object has no attribute 'range'
+INFO:2024-10-23 16:00:02,843:MainThread:Dhan.py  started system
+INFO:2024-10-23 16:00:02,843:MainThread:STARTED THE PROGRAM
+ERROR:2024-10-23 16:00:10,832:MainThread:Error at Gettting balance as string indices must be integers
+Traceback (most recent call last):
+  File "/home/pritam/projects/sampleprojects/python_projects/dhan/Dhan_Tradehull.py", line 199, in get_balance
+    balance = float(response['data']['availabelBalance'])
+TypeError: string indices must be integers
+INFO:2024-10-23 16:02:12,491:MainThread:Dhan.py  started system
+INFO:2024-10-23 16:02:12,492:MainThread:STARTED THE PROGRAM
+ERROR:2024-10-23 16:02:23,069:MainThread:Error at Gettting balance as string indices must be integers
+Traceback (most recent call last):
+  File "/home/pritam/projects/sampleprojects/python_projects/dhan/Dhan_Tradehull.py", line 199, in get_balance
+    balance = float(response['data']['availabelBalance'])
+TypeError: string indices must be integers
+ERROR:2024-10-23 16:02:30,374:MainThread:Exception in getting LTP as 'Series' object has no attribute 'range'
+Traceback (most recent call last):
+  File "/home/pritam/projects/sampleprojects/python_projects/dhan/Dhan_Tradehull.py", line 323, in get_ltp
+    df = self.sheet.range('A1').expand().options(pd.DataFrame, header=1, index=False).value
+  File "/home/pritam/projects/sampleprojects/python_projects/dhan/.venv/lib/python3.8/site-packages/pandas/core/generic.py", line 5989, in __getattr__
+    return object.__getattribute__(self, name)
+AttributeError: 'Series' object has no attribute 'range'

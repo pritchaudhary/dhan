@@ -1,0 +1,9 @@
+INFO:2024-11-04 11:34:18,679:MainThread:Dhan.py  started system
+INFO:2024-11-04 11:34:18,680:MainThread:STARTED THE PROGRAM
+ERROR:2024-11-04 11:34:34,079:MainThread:Exception in getting LTP as 'Series' object has no attribute 'range'
+Traceback (most recent call last):
+  File "/home/pritam/projects/sampleprojects/python_projects/dhan/Dhan_Tradehull.py", line 323, in get_ltp
+    df = self.sheet.range('A1').expand().options(pd.DataFrame, header=1, index=False).value
+  File "/home/pritam/projects/sampleprojects/python_projects/dhan/.venv/lib/python3.8/site-packages/pandas/core/generic.py", line 5989, in __getattr__
+    return object.__getattribute__(self, name)
+AttributeError: 'Series' object has no attribute 'range'
