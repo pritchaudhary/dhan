@@ -1,0 +1,35 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug NIFTY 50 Strategy",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nifty_50.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/venv_nifty50/bin/python",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "justMyCode": false,
+            "stopOnEntry": false,
+            "args": []
+        },
+        {
+            "name": "Debug NIFTY 50 Strategy (Step Mode)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/nifty_50.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/venv_nifty50/bin/python",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "justMyCode": false,
+            "stopOnEntry": true,
+            "args": []
+        }
+    ]
+}
