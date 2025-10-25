@@ -25,10 +25,48 @@ client_id = "1102249582"
 access_token = token
 dhan = dhanhq(client_id, access_token)
 
-# Load master list
-masterlist = pd.read_csv('https://images.dhan.co/api-data/api-scrip-master.csv', nrows=1)
-masterlist = pd.read_csv('https://images.dhan.co/api-data/api-scrip-master.csv', 
-                        usecols=masterlist.columns, low_memory=False)
+# Load master list with daily caching
+def load_masterlist():
+    """Load master list with daily caching"""
+    cache_file = 'masterlist_cache.csv'
+    cache_date_file = 'masterlist_cache_date.txt'
+    
+    # Check if cache exists and is from today
+    if os.path.exists(cache_file) and os.path.exists(cache_date_file):
+        with open(cache_date_file, 'r') as f:
+            cached_date = f.read().strip()
+        today = datetime.datetime.now().strftime('%Y-%m-%d')
+        
+        if cached_date == today:
+            print("📁 Loading master list from cache...")
+            return pd.read_csv(cache_file, low_memory=False)
+    
+    # Load from URL and cache
+    print("🌐 Loading master list from URL...")
+    try:
+        # First get column names
+        masterlist = pd.read_csv('https://images.dhan.co/api-data/api-scrip-master.csv', nrows=1)
+        # Then load full data
+        masterlist = pd.read_csv('https://images.dhan.co/api-data/api-scrip-master.csv', 
+                                usecols=masterlist.columns, low_memory=False)
+        
+        # Save to cache
+        masterlist.to_csv(cache_file, index=False)
+        with open(cache_date_file, 'w') as f:
+            f.write(datetime.datetime.now().strftime('%Y-%m-%d'))
+        
+        print("✅ Master list cached for today")
+        return masterlist
+    except Exception as e:
+        print(f"❌ Error loading master list: {e}")
+        # Try to load from cache even if outdated
+        if os.path.exists(cache_file):
+            print("📁 Loading from outdated cache...")
+            return pd.read_csv(cache_file, low_memory=False)
+        else:
+            raise e
+
+masterlist = load_masterlist()
 
 # Setup logging
 logging.basicConfig(filename="logfile.txt", 
