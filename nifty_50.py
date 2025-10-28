@@ -74,12 +74,12 @@ logging.basicConfig(filename="logfile.txt",
                     format="%(asctime)s - %(levelname)s - %(message)s")
 
 # Configuration parameters
-NIFTY_PREMIUM = 25750
+NIFTY_PREMIUM = 25900
 EXPIRY_DATE = '2025-10-28 14:30:00'
 
 # OPTION TYPE CONFIGURATION
 # Set to 'CE' for Call Options or 'PE' for Put Options
-OPTION_TYPE = 'PE'  # Change this to 'PE' if you want to trade Put options
+OPTION_TYPE = 'CE'  # Change this to 'PE' if you want to trade Put options
 
 # Filter CE options
 filtered_ce_masterlist = masterlist[
@@ -109,7 +109,7 @@ print(f"Option Type: {OPTION_TYPE} ({'Call Options' if OPTION_TYPE == 'CE' else 
 print("="*60 + "\n")
 
 if not filtered_ce_masterlist.empty:
-    CE_SECURITY_ID = filtered_ce_masterlist.iloc[0]['SEM_SMST_SECURITY_ID']
+    CE_SECURITY_ID = int(filtered_ce_masterlist.iloc[0]['SEM_SMST_SECURITY_ID'])
     print(f"✓ CE Security ID: {CE_SECURITY_ID}")
     print(f"  Trading Symbol: {filtered_ce_masterlist.iloc[0]['SEM_TRADING_SYMBOL']}")
 else:
@@ -117,7 +117,7 @@ else:
     CE_SECURITY_ID = None
 
 if not filtered_pe_masterlist.empty:
-    PE_SECURITY_ID = filtered_pe_masterlist.iloc[0]['SEM_SMST_SECURITY_ID']
+    PE_SECURITY_ID = int(filtered_pe_masterlist.iloc[0]['SEM_SMST_SECURITY_ID'])
     print(f"✓ PE Security ID: {PE_SECURITY_ID}")
     print(f"  Trading Symbol: {filtered_pe_masterlist.iloc[0]['SEM_TRADING_SYMBOL']}")
 else:
@@ -171,16 +171,16 @@ while IS_ACTIVE is False:
     current_minute = current_time.minute
     time_str = current_time.strftime("%H:%M:%S")
     
-    # Wait for second 1 (1 second after minute starts)
+    # Wait for second 1 (optimal balance of speed and data reliability)
     if current_second == 1:
         IS_ACTIVE = True
-        print(f"\n⏰ [{time_str}] Second 1 of minute {current_minute} - ACTIVATING!")
+        print(f"\n⏰ [{time_str}] Beginning of minute {current_minute} - ACTIVATING!")
         print("="*60)
         print("✓ STRATEGY ACTIVATED!")
         print("="*60 + "\n")
         break
     else:
-        print(f"⏰ [{time_str}] Waiting for second 1... (current: {current_second})")
+        print(f"⏰ [{time_str}] Waiting for beginning of minute... (current: {current_second})")
         time.sleep(1)
 
 # Phase 2: Buy phase
@@ -271,27 +271,60 @@ while IS_ACTIVE is True and IS_OPEN_POSITION is False:
     # Display market data
     print(f"\n   📊 Market: Prev[{previous_closed_candle['close'].item():.1f}] → Curr[{current_running_candle['close'].item():.1f}] Vol:{current_running_candle['volume'].item():.0f}")
     
-    # Buy signal triggered - place order immediately
+    # Buy signal triggered - wait for next candle's opening price
     print("\n   ✓ BUY SIGNAL TRIGGERED!")
+    print("   ⏳ Waiting for next candle to get opening price...")
     
-    buy_price = current_running_candle['close'].item()
+    # Wait for the next candle to form and get its opening price
+    next_candle_opening_price = None
+    max_wait_seconds = 30  # Maximum wait time for next candle
+    wait_start_time = time.time()
+    
+    while next_candle_opening_price is None and (time.time() - wait_start_time) < max_wait_seconds:
+        time.sleep(0.5)  # Check every 500ms
+        
+        try:
+            # Get fresh data to check for new candle
+            current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+            security_id_str = str(SECURITY_ID)
+            fresh_data = dhan.intraday_minute_data(security_id_str, dhan.NSE_FNO, "OPTIDX", current_date, current_date, 1)
+            
+            if fresh_data and 'data' in fresh_data and fresh_data['data']:
+                fresh_df = pd.DataFrame(fresh_data['data'])
+                if len(fresh_df) > len(intraday_df):
+                    # New candle detected
+                    next_candle = fresh_df.iloc[-1]
+                    next_candle_opening_price = next_candle['open'].item()
+                    print(f"   📊 Next candle opened at: ₹{next_candle_opening_price:.2f}")
+                    break
+                else:
+                    print(f"   ⏳ Waiting for next candle... ({int(time.time() - wait_start_time)}s)")
+        except Exception as e:
+            print(f"   ⚠️ Error checking for next candle: {e}")
+            continue
+    
+    if next_candle_opening_price is None:
+        print("   ⚠️ Could not get next candle opening price, using current close price")
+        next_candle_opening_price = current_running_candle['close'].item()
+    
+    buy_price = next_candle_opening_price
     stop_loss = buy_price - 2  # Stop loss = buy price - 2 points
     
-    print(f"\n   💰 Order: {quantity}qty @ ₹{buy_price} | SL: ₹{stop_loss} | Risk: ₹{(buy_price - stop_loss) * quantity}")
+    print(f"\n   💰 Order: {quantity}qty @ ₹{buy_price:.2f} | SL: ₹{stop_loss:.2f} | Risk: ₹{(buy_price - stop_loss) * quantity:.2f}")
 
     try:
         print(f"\n   📤 Placing BUY order...")
-        # order_response = dhan.place_order(
-        #     security_id=SECURITY_ID,
-        #     exchange_segment=dhan.NSE_FNO,
-        #     transaction_type=dhan.BUY,
-        #     quantity=quantity,
-        #     order_type=dhan.MARKET,
-        #     product_type=dhan.INTRA,
-        #     price=0)  
+        order_response = dhan.place_order(
+            security_id=str(SECURITY_ID),
+            exchange_segment=dhan.NSE_FNO,
+            transaction_type=dhan.BUY,
+            quantity=int(quantity),
+            order_type=dhan.MARKET,
+            product_type=dhan.INTRA,
+            price=0)  
 
-        # print(f"   ✓ BUY ORDER PLACED! Response: {order_response}")
-        # logging.info(f"BUY {OPTION_TYPE} at {buy_price} - Order Response: {order_response}")
+        print(f"   ✓ BUY ORDER PLACED! Response: {order_response}")
+        logging.info(f"BUY {OPTION_TYPE} at {buy_price:.2f} - Order Response: {order_response}")
 
         IS_OPEN_POSITION = True
         print(f"\n✓ {OPTION_TYPE} POSITION OPENED - Moving to Sell Phase\n")
@@ -383,16 +416,17 @@ while IS_OPEN_POSITION is True and quantity > 0:
         
         try:
             print(f"\n   📤 Placing SELL order...")
-            # order_response = dhan.place_order(
-            #     security_id=SECURITY_ID,
-            #     exchange_segment=dhan.NSE_FNO,
-            #     transaction_type=dhan.SELL,
-            #     quantity=quantity,
-            #     order_type=dhan.MARKET,
-            #     product_type=dhan.INTRA,
-            #     price=0)  
-            # print(f"   ✓ SELL ORDER PLACED! Response: {order_response}")
-            # logging.info(f"SELL {OPTION_TYPE} SL hit {current_running_candle['close'].item()} - Order Response: {order_response}")
+            order_response = dhan.place_order(
+                security_id=str(SECURITY_ID),
+                exchange_segment=dhan.NSE_FNO,
+                transaction_type=dhan.SELL,
+                quantity=int(quantity),
+                order_type=dhan.MARKET,
+                product_type=dhan.INTRA,
+                price=0)  
+           
+            print(f"   ✓ SELL ORDER PLACED! Response: {order_response}")
+            logging.info(f"SELL {OPTION_TYPE} SL hit {current_running_candle['close'].item()} - Order Response: {order_response}")
             
             print(f"\n✓ {OPTION_TYPE} POSITION CLOSED - Stop Loss Hit")
         except Exception as e:
